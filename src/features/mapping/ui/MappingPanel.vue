@@ -7,7 +7,7 @@ const { doc, invalidate } = useStudio();
 <template>
   <section class="panel">
     <div class="section-title">
-      <span>03 / CHARACTER LAB</span><SlidersHorizontal :size="15" />
+      <span>03 / BASE MAPPING</span><SlidersHorizontal :size="15" />
     </div>
     <label class="field"
       >字符密度 <b>{{ doc.settings.columns }} 列</b
@@ -40,6 +40,7 @@ const { doc, invalidate } = useStudio();
       v-model="doc.settings.custom"
       @input="invalidate"
     />
+    <p class="hint base-hint">以下设置构成“基础映射”，作用于未被区域规则覆盖的部分。</p>
     <div class="glyph-strip">
       {{
         doc.settings.charset === "custom"

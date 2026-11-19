@@ -14,8 +14,14 @@ export function useSource() {
       if (id !== ticket) return;
       doc.asset = asset;
       doc.crop = { x: 0, y: 0, width: 1, height: 1 };
+      // Regions are anchored to the previous image's coordinates, so they
+      // cannot carry over to a different picture.
+      const cleared = doc.regions.length;
+      doc.regions = [];
       invalidate();
-      notice.value = "图片已载入";
+      notice.value = cleared
+        ? `图片已载入，已清除上一张图的 ${cleared} 个区域规则`
+        : "图片已载入";
     } catch (e) {
       if (id === ticket)
         notice.value = e instanceof Error ? e.message : "无法读取图片";

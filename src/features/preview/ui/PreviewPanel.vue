@@ -1,46 +1,96 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { Code2, Scan, Minus, Plus } from "lucide-vue-next";
+import {
+  Code2,
+  Scan,
+  Minus,
+  Plus,
+  Layers,
+  Crosshair,
+  X,
+} from "lucide-vue-next";
 import { usePreview } from "../model/usePreview";
 import { gridRows } from "../lib/rows";
 import ArtCanvas from "./ArtCanvas.vue";
+import OwnerLegend from "../../regions/ui/OwnerLegend.vue";
+import { explainCell } from "../../regions/lib/explain";
+import { cellGlyph } from "../../regions/lib/explain";
+import { previewTab, showOwners, pickedCell } from "../../../shared/ui";
+import { useStudio } from "../../../shared/useStudio";
 const p = usePreview();
+const { invalidate } = useStudio();
 const text = computed(() =>
   p.doc.grid ? gridRows(p.doc.grid).join("\n") : "",
 );
+const explanation = computed(() => {
+  const grid = p.doc.grid;
+  if (!grid || pickedCell.value == null) return null;
+  return explainCell(grid, pickedCell.value);
+});
+function pick(index: number) {
+  pickedCell.value = pickedCell.value === index ? null : index;
+}
+function setTab(tab: "art" | "text" | "regions") {
+  previewTab.value = tab;
+}
+function toggleOwners() {
+  showOwners.value = !showOwners.value;
+  if (showOwners.value && previewTab.value === "text") previewTab.value = "art";
+}
 </script>
 <template>
   <main class="workspace">
     <div class="preview-toolbar">
       <div class="tabs">
         <button
-          :class="{ active: p.mode.value === 'art' }"
-          @click="p.mode.value = 'art'"
+          :class="{ active: previewTab === 'art' }"
+          @click="setTab('art')"
         >
           <Scan :size="14" /> 字符预览</button
         ><button
-          :class="{ active: p.mode.value === 'text' }"
-          @click="p.mode.value = 'text'"
+          :class="{ active: previewTab === 'text' }"
+          @click="setTab('text')"
         >
-          <Code2 :size="14" /> 纯文本
+          <Code2 :size="14" /> 纯文本</button
+        ><button
+          :class="{ active: previewTab === 'regions' }"
+          @click="setTab('regions')"
+        >
+          <Layers :size="14" /> 区域规则
         </button>
       </div>
-      <label class="color-toggle"
-        ><span class="color-dot" /> 彩色<input
-          aria-label="彩色预览"
-          type="checkbox"
-          v-model="p.doc.settings.color"
-      /></label>
+      <div class="toolbar-right">
+        <button
+          class="owner-toggle"
+          :class="{ active: showOwners }"
+          :disabled="!p.doc.grid"
+          @click="toggleOwners"
+        >
+          <Crosshair :size="13" /> 归属着色
+        </button>
+        <label class="color-toggle"
+          ><span class="color-dot" /> 彩色<input
+            aria-label="彩色预览"
+            type="checkbox"
+            v-model="p.doc.settings.color"
+        /></label>
+      </div>
     </div>
     <div class="art-stage">
-      <div class="stage-label">OUTPUT / LIVE RENDER <span>●</span></div>
+      <div class="stage-label">
+        OUTPUT / LIVE RENDER <span>●</span>
+        <i v-if="showOwners">· 归属着色仅用于预览</i>
+      </div>
       <div class="art-scroll">
         <ArtCanvas
-          v-if="p.doc.grid && p.mode.value === 'art'"
+          v-if="p.doc.grid && previewTab !== 'text'"
           :grid="p.doc.grid"
           :color="p.doc.settings.color"
           :background="p.doc.settings.background"
           :zoom="p.zoom.value"
+          :owners="showOwners"
+          :picked="pickedCell"
+          @pick="pick"
         />
         <pre
           v-else-if="p.doc.grid"
@@ -52,8 +102,32 @@ const text = computed(() =>
           >{{ text }}</pre>
         <span v-else>正在准备字符画…</span>
       </div>
+      <div v-if="explanation" class="cell-inspector">
+        <button
+          class="icon-button close"
+          aria-label="关闭单元格解释"
+          @click="pickedCell = null"
+        >
+          <X :size="12" />
+        </button>
+        <span class="mono">单元格 #{{ pickedCell }}</span>
+        <b class="mono glyph-sample">{{ cellGlyph(p.doc.grid!.cells[pickedCell!]!) }}</b>
+        <span class="mono" :style="{ color: explanation.color }">
+          ← {{ explanation.owner }}
+          <template v-if="explanation.priority">（P{{ explanation.priority }}）</template>
+        </span>
+        <small>{{ explanation.reason }}</small>
+        <small class="mono">
+          亮度 {{ Math.round(explanation.luminance) }} · 字符位
+          {{ explanation.tone.toFixed(2) }}
+        </small>
+      </div>
+      <OwnerLegend v-if="previewTab === 'regions' && p.doc.grid" :grid="p.doc.grid" />
       <div class="stage-corner">
         {{ p.doc.grid?.columns }} COL × {{ p.doc.grid?.rows }} ROW
+        <template v-if="p.doc.regions.length">
+          · 单一网格 · {{ p.doc.regions.length }} 条区域规则
+        </template>
       </div>
     </div>
     <div class="preview-bottom">

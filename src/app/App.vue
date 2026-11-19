@@ -6,6 +6,7 @@ import { CropPanel } from "../features/crop";
 import { MappingPanel } from "../features/mapping";
 import { PreviewPanel } from "../features/preview";
 import { ExportPanel } from "../features/export";
+import { RegionPanel, RegionEditor } from "../features/regions";
 const w = useWorkspace();
 </script>
 <template>
@@ -33,7 +34,9 @@ const w = useWorkspace();
       </div>
     </div>
     <div class="editor">
-      <aside><SourcePanel /><CropPanel /><MappingPanel /></aside>
+      <aside>
+        <SourcePanel /><CropPanel /><MappingPanel /><RegionPanel /><RegionEditor />
+      </aside>
       <div class="result"><PreviewPanel /><ExportPanel /></div>
     </div>
     <footer>
